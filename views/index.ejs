@@ -3,221 +3,523 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Task Management System</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <title>Task Master Pro</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@3.3.4/dist/vue.global.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@mdi/font@7.2.96/css/materialdesignicons.min.css" rel="stylesheet">
+    <link rel="icon" type="image/png" href="https://img.icons8.com/pulsar-gradient/48/tasks.png">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .task-enter-active,
+        .task-leave-active {
+            transition: all 0.3s ease;
+        }
+        .task-enter-from,
+        .task-leave-to {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+        .notification-badge {
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+    </style>
 </head>
-<body class="bg-gray-100">
+<body class="bg-gradient-to-br from-blue-50 to-purple-100 min-h-screen">
     <div id="app" class="container mx-auto px-4 py-8">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <!-- Task Creation Column -->
-            <div class="bg-white shadow-md rounded p-6">
-                <h2 class="text-2xl mb-4 font-bold">Create Task</h2>
-                <form @submit.prevent="createTask">
-                    <div class="mb-4">
-                        <label class="block text-gray-700 text-sm font-bold mb-2">Title</label>
-                        <input 
-                            v-model="newTask.title" 
-                            type="text" 
-                            required 
-                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700"
-                            placeholder="Enter task title"
-                        >
-                    </div>
-                    <div class="mb-4">
-                        <label class="block text-gray-700 text-sm font-bold mb-2">Description</label>
-                        <textarea 
-                            v-model="newTask.description" 
-                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700"
-                            placeholder="Task description (optional)"
-                        ></textarea>
-                    </div>
-                    <div class="mb-4">
-                        <label class="block text-gray-700 text-sm font-bold mb-2">Due Date</label>
-                        <input 
-                            v-model="newTask.dueDate" 
-                            type="date" 
-                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700"
-                        >
-                    </div>
-                    <div class="mb-4">
-                        <label class="block text-gray-700 text-sm font-bold mb-2">Priority</label>
-                        <select 
-                            v-model="newTask.priority" 
-                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700"
-                        >
-                            <option value="low">Low</option>
-                            <option value="medium">Medium</option>
-                            <option value="high">High</option>
-                        </select>
-                    </div>
-                    <div class="mb-4">
-                        <label class="flex items-center">
-                            <input 
-                                type="checkbox" 
-                                v-model="newTask.isRecurring" 
-                                class="mr-2"
-                            >
-                            Recurring Task
-                        </label>
-                    </div>
-                    <div v-if="newTask.isRecurring" class="mb-4">
-                        <label class="block text-gray-700 text-sm font-bold mb-2">Recurrence</label>
-                        <select 
-                            v-model="newTask.recurrence.frequency" 
-                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700"
-                        >
-                            <option value="daily">Daily</option>
-                            <option value="weekly">Weekly</option>
-                            <option value="monthly">Monthly</option>
-                        </select>
-                    </div>
-                    <button 
-                        type="submit" 
-                        class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded w-full"
-                    >
+        <div class="max-w-7xl mx-auto">
+            <h1 class="text-4xl font-bold text-center mb-8 text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
+                Task Master Pro
+            </h1>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Task Creation Column -->
+                <div class="bg-white shadow-2xl rounded-2xl p-6 transform transition-all hover:scale-105 duration-300">
+                    <h2 class="text-2xl mb-6 font-bold text-center flex items-center justify-center">
+                        <i class="mdi mdi-plus-circle text-blue-500 mr-3 text-3xl"></i>
                         Create Task
-                    </button>
-                </form>
-            </div>
-
-            <!-- Task List Column -->
-            <div class="bg-white shadow-md rounded p-6">
-                <h2 class="text-2xl mb-4 font-bold">My Tasks</h2>
-                <div 
-                    v-for="(task, index) in tasks" 
-                    :key="index" 
-                    class="border-b py-3 flex justify-between items-center"
-                >
-                    <div>
-                        <h3 class="font-bold">{{ task.title }}</h3>
-                        <p class="text-sm text-gray-600">{{ task.description }}</p>
-                        <span 
-                            :class="{
-                                'text-green-500': task.priority === 'low', 
-                                'text-yellow-500': task.priority === 'medium', 
-                                'text-red-500': task.priority === 'high'
-                            }"
-                        >
-                            {{ task.priority }} Priority
-                        </span>
-                        <p v-if="task.dueDate" class="text-sm text-gray-500">
-                            Due: {{ formatDate(task.dueDate) }}
-                        </p>
-                    </div>
-                    <div>
-                        <button 
-                            @click="completeTask(index)" 
-                            class="text-green-500 mr-2 hover:bg-green-100 p-1 rounded"
-                            title="Complete Task"
-                        >
-                            ✓
-                        </button>
-                        <button 
-                            @click="deleteTask(index)" 
-                            class="text-red-500 hover:bg-red-100 p-1 rounded"
-                            title="Delete Task"
-                        >
-                            ✗
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Calendar View Column -->
-            <div class="bg-white shadow-md rounded p-6">
-                <h2 class="text-2xl mb-4 font-bold">Calendar</h2>
-                <div id="calendar">
-                    <div 
-                        v-for="date in calendarDates" 
-                        :key="date" 
-                        class="border p-2 mb-1 flex justify-between items-center"
-                    >
-                        <span>{{ formatDate(date) }}</span>
-                        <div>
-                            <span 
-                                v-for="task in getTasksForDate(date)" 
-                                :key="task.title" 
-                                class="ml-2 text-xs bg-blue-100 px-1 rounded"
+                    </h2>
+                    <form @submit.prevent="createTask">
+                        <div class="space-y-4">
+                            <input 
+                                v-model="newTask.title" 
+                                type="text" 
+                                required 
+                                class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="Task Title"
                             >
-                                {{ task.title }}
-                            </span>
+                            
+                            <textarea 
+                                v-model="newTask.description" 
+                                class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="Description (optional)"
+                                rows="3"
+                            ></textarea>
+                            
+                            <div class="grid grid-cols-2 gap-4">
+                                <input 
+                                    v-model="newTask.dueDate" 
+                                    type="datetime-local" 
+                                    class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                <select 
+                                    v-model="newTask.priority" 
+                                    class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value="low">Low Priority</option>
+                                    <option value="medium">Medium Priority</option>
+                                    <option value="high">High Priority</option>
+                                    <option value="critical">Critical Priority</option>
+                                </select>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="flex items-center space-x-2">
+                                    <input 
+                                        type="checkbox" 
+                                        v-model="newTask.isRecurring" 
+                                        class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                    >
+                                    <label>Recurring Task</label>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <input 
+                                        type="checkbox" 
+                                        v-model="newTask.setReminder" 
+                                        class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                    >
+                                    <label>Set Reminder</label>
+                                </div>
+                            </div>
+
+                            <div v-if="newTask.setReminder" class="grid grid-cols-2 gap-4">
+                                <select 
+                                    v-model="newTask.reminderFrequency" 
+                                    class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value="5min">5 minutes before</option>
+                                    <option value="15min">15 minutes before</option>
+                                    <option value="30min">30 minutes before</option>
+                                    <option value="1hour">1 hour before</option>
+                                    <option value="1day">1 day before</option>
+                                </select>
+                                <input 
+                                    v-model="newTask.reminderTime" 
+                                    type="datetime-local" 
+                                    class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                            </div>
+                            
+                            <button 
+                                type="submit" 
+                                class="w-full bg-gradient-to-r from-blue-500 to-purple-500 text-white py-3 rounded-lg hover:from-blue-600 hover:to-purple-600 transition duration-300"
+                            >
+                                Create Task
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Task List Column -->
+                <div class="bg-white shadow-2xl rounded-2xl p-6 transform transition-all hover:scale-105 duration-300">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold flex items-center">
+                            <i class="mdi mdi-format-list-checks text-green-500 mr-3 text-3xl"></i>
+                            My Tasks
+                        </h2>
+                        <div class="flex items-center space-x-2">
+                            <select 
+                                v-model="taskFilter" 
+                                class="px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="all">All Tasks</option>
+                                <option value="today">Today</option>
+                                <option value="week">This Week</option>
+                                <option value="priority">By Priority</option>
+                                <option value="completed">Completed</option>
+                            </select>
+                            <button 
+                                @click="clearAllTasks" 
+                                class="text-red-500 hover:bg-red-100 p-2 rounded"
+                            >
+                                <i class="mdi mdi-trash-can text-xl"></i>
+                            </button>
                         </div>
                     </div>
+                    
+                    <transition-group name="task" tag="div" class="space-y-4">
+                        <div 
+                            v-for="(task, index) in filteredTasks" 
+                            :key="task.id" 
+                            class="bg-gray-50 p-4 rounded-lg shadow-md flex justify-between items-center hover:bg-gray-100 transition duration-200"
+                            :class="{'opacity-50': task.completed}"
+                        >
+                            <div>
+                                <h3 
+                                    class="font-bold text-lg" 
+                                    :class="{'line-through': task.completed}"
+                                >
+                                    {{ task.title }}
+                                </h3>
+                                <p class="text-sm text-gray-600">{{ task.description }}</p>
+                                <div class="flex items-center space-x-2 mt-2">
+                                    <span 
+                                        :class="{
+                                            'text-green-500': task.priority === 'low', 
+                                            'text-yellow-500': task.priority === 'medium', 
+                                            'text-orange-500': task.priority === 'high',
+                                            'text-red-500': task.priority === 'critical'
+                                        }"
+                                        class="flex items-center"
+                                    >
+                                        <i class="mdi mdi-flag mr-1"></i> 
+                                        {{ task.priority }}
+                                    </span>
+                                    <span v-if="task.dueDate" class="text-sm text-gray-500">
+                                        <i class="mdi mdi-calendar-clock mr-1"></i>
+                                        {{ formatDate(task.dueDate) }}
+                                    </span>
+                                    <span 
+                                        v-if="task.setReminder" 
+                                        class="text-sm text-purple-500 flex items-center"
+                                    >
+                                        <i class="mdi mdi-bell-ring mr-1"></i>
+                                        {{ task.reminderFrequency }} 
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <button 
+                                    @click="toggleTaskStatus(index)" 
+                                    class="text-green-500 hover:bg-green-100 p-2 rounded"
+                                >
+                                    <i :class="task.completed ? 'mdi mdi-undo' : 'mdi mdi-check'"></i>
+                                </button>
+                                <button 
+                                    @click="deleteTask(index)" 
+                                    class="text-red-500 hover:bg-red-100 p-2 rounded"
+                                >
+                                    <i class="mdi mdi-trash-can"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </transition-group>
+                </div>
+
+                <!-- Notifications Column -->
+                <div class="bg-white shadow-2xl rounded-2xl p-6 transform transition-all hover:scale-105 duration-300">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold flex items-center">
+                            <i class="mdi mdi-bell text-yellow-500 mr-3 text-3xl"></i>
+                            Notifications
+                            <span 
+                                v-if="notifications.length" 
+                                class="ml-2 bg-red-500 text-white rounded-full px-2 py-1 text-xs notification-badge"
+                            >
+                                {{ notifications.length }}
+                            </span>
+                        </h2>
+                        <button 
+                            @click="clearAllNotifications" 
+                            class="text-red-500 hover:bg-red-100 p-2 rounded"
+                        >
+                            <i class="mdi mdi-trash-can"></i>
+                        </button>
+                    </div>
+                    
+                    <div v-if="notifications.length === 0" class="text-center text-gray-500">
+                        No active notifications
+                    </div>
+                    
+                    <transition-group name="task" tag="div" class="space-y-4">
+                        <div 
+                            v-for="(notification, index) in notifications" 
+                            :key="index" 
+                            class="bg-gray-50 p-4 rounded-lg shadow-md flex justify-between items-center"
+                            :class="{
+                                'border-l-4 border-green-500': notification.type === 'success',
+                                'border-l-4 border-yellow-500': notification.type === 'warning',
+                                'border-l-4 border-red-500': notification.type === 'error'
+                            }"
+                        >
+                            <div>
+                                <h3 class="font-bold">{{ notification.title }}</h3>
+                                <p class="text-sm text-gray-600">{{ notification.message }}</p>
+                                <p class="text-xs text-gray-500 mt-1">
+                                    {{ formatDate(notification.time) }}
+                                </p>
+                            </div>
+                            <button 
+                                @click="dismissNotification(index)" 
+                                class="text-red-500 hover:bg-red-100 p-2 rounded"
+                            >
+                                <i class="mdi mdi-close"></i>
+                            </button>
+                        </div>
+                    </transition-group>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        new Vue({
-            el: '#app',
-            data: {
-                newTask: {
+        const { createApp, ref, onMounted, computed } = Vue;
+
+        createApp({
+            setup() {
+                const newTask = ref({
                     title: '',
                     description: '',
                     dueDate: '',
                     priority: 'medium',
                     isRecurring: false,
-                    recurrence: {
-                        frequency: 'daily'
+                    setReminder: false,
+                    reminderFrequency: '15min',
+                    reminderTime: '',
+                });
+
+                const tasks = ref([]);
+                const notifications = ref([]);
+                const taskFilter = ref('all');
+
+                // Sophisticated notification system
+                const addNotification = (title, message, type = 'success') => {
+                    notifications.value.unshift({
+                        title,
+                        message,
+                        time: new Date().toISOString(),
+                        type
+                    });
+
+                    // Limit notifications to last 10
+                    if (notifications.value.length > 10) {
+                        notifications.value.pop();
                     }
-                },
-                tasks: [],
-                calendarDates: []
-            },
-            methods: {
-                createTask() {
-                    // Clone the new task to avoid reference issues
-                    const taskToAdd = {...this.newTask};
-                    this.tasks.push(taskToAdd);
+                };
+
+                // Real-time sync with localStorage
+                const saveTasks = () => {
+                    localStorage.setItem('tasks', JSON.stringify(tasks.value));
+                    localStorage.setItem('notifications', JSON.stringify(notifications.value));
+                };
+
+                const loadTasks = () => {
+                    const savedTasks = localStorage.getItem('tasks');
+                    const savedNotifications = localStorage.getItem('notifications');
                     
+                    if (savedTasks) {
+                        tasks.value = JSON.parse(savedTasks);
+                    }
+                    
+                    if (savedNotifications) {
+                        notifications.value = JSON.parse(savedNotifications);
+                    }
+                };
+
+                const createTask = () => {
+                    // Validate due date
+                    if (new Date(newTask.value.dueDate) < new Date()) {
+                        addNotification('Invalid Date', 'Due date cannot be in the past', 'error');
+                        return;
+                    }
+
+                    const taskToAdd = {
+                        ...newTask.value,
+                        id: Date.now(),
+                        completed: false,
+                    };
+
+                    tasks.value.push(taskToAdd);
+                    
+                    // Add task creation notification
+                    addNotification('Task Created', `Task "${taskToAdd.title}" has been added`);
+
+                    // Schedule reminders
+                    if (taskToAdd.setReminder) {
+                        scheduleReminder(taskToAdd);
+                    }
+
+                    saveTasks();
+
                     // Reset form
-                    this.newTask = {
+                    newTask.value = {
                         title: '',
                         description: '',
                         dueDate: '',
                         priority: 'medium',
                         isRecurring: false,
-                        recurrence: {
-                            frequency: 'daily'
-                        }
+                        setReminder: false,
+                        reminderFrequency: '15min',
+                        reminderTime: '',
                     };
-                },
-                completeTask(index) {
-                    // For now, we'll just remove the task
-                    this.tasks.splice(index, 1);
-                },
-                deleteTask(index) {
-                    this.tasks.splice(index, 1);
-                },
-                generateCalendar() {
-                    const today = new Date();
-                    this.calendarDates = [...Array(30)].map((_, i) => {
-                        const date = new Date(today);
-                        date.setDate(today.getDate() + i);
-                        return date.toISOString().split('T')[0];
-                    });
-                },
-                formatDate(dateString) {
+                };
+
+                const scheduleReminder = (task) => {
+                    const dueDate = new Date(task.dueDate);
+                    let reminderTime;
+
+                    switch(task.reminderFrequency) {
+                        case '5min':
+                            reminderTime = new Date(dueDate.getTime() - 5 * 60000);
+                            break;
+                        case '15min':
+                            reminderTime = new Date(dueDate.getTime() - 15 * 60000);
+                            break;
+                        case '30min':
+                            reminderTime = new Date(dueDate.getTime() - 30 * 60000);
+                            break;
+                        case '1hour':
+                            reminderTime = new Date(dueDate.getTime() - 60 * 60000);
+                            break;
+                        case '1day':
+                            reminderTime = new Date(dueDate.getTime() - 24 * 60 * 60000);
+                            break;
+                    }
+
+                    const timeUntilReminder = reminderTime.getTime() - new Date().getTime();
+
+                    if (timeUntilReminder > 0) {
+                        setTimeout(() => {
+                            addNotification(
+                                'Task Reminder', 
+                                `Reminder: "${task.title}" is due soon`, 
+                                'warning'
+                            );
+
+                            // Web Notification
+                            if ('Notification' in window && Notification.permission === 'granted') {
+                                new Notification('Task Reminder', {
+                                    body: task.title,
+                                    icon: 'https://img.icons8.com/pulsar-gradient/48/tasks.png'
+                                });
+                            }
+                        }, timeUntilReminder);
+                    }
+                };
+
+                const deleteTask = (index) => {
+                    const deletedTask = tasks.value[index];
+                    tasks.value.splice(index, 1);
+                    
+                    addNotification('Task Deleted', `Task "${deletedTask.title}" has been removed`, 'error');
+                    
+                    saveTasks();
+                };
+
+                const toggleTaskStatus = (index) => {
+                    tasks.value[index].completed = !tasks.value[index].completed;
+                    
+                    const task = tasks.value[index];
+                    const status = task.completed ? 'completed' : 'marked incomplete';
+                    
+                    addNotification('Task Status', `Task "${task.title}" was ${status}`);
+                    
+                    saveTasks();
+                };
+
+                const clearAllTasks = () => {
+                    tasks.value = [];
+                    localStorage.removeItem('tasks');
+                    
+                    addNotification('Tasks Cleared', 'All tasks have been deleted', 'error');
+                };
+
+                const clearAllNotifications = () => {
+                    notifications.value = [];
+                    localStorage.removeItem('notifications');
+                };
+
+                const dismissNotification = (index) => {
+                    notifications.value.splice(index, 1);
+                    saveTasks();
+                };
+
+                const formatDate = (dateString) => {
                     if (!dateString) return '';
-                    return new Date(dateString).toLocaleDateString('en-US', {
+                    return new Date(dateString).toLocaleString('en-US', {
                         weekday: 'short',
                         year: 'numeric',
                         month: 'short',
-                        day: 'numeric'
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
                     });
-                },
-                getTasksForDate(date) {
-                    return this.tasks.filter(task => 
-                        task.dueDate && task.dueDate === date
-                    );
-                }
-            },
-            mounted() {
-                this.generateCalendar();
+                };
+
+                const filteredTasks = computed(() => {
+                    let filtered = tasks.value;
+                    
+                    switch(taskFilter.value) {
+                        case 'today':
+                            const today = new Date().toISOString().split('T')[0];
+                            filtered = filtered.filter(task => 
+                                task.dueDate && task.dueDate.startsWith(today)
+                            );
+                            break;
+                        case 'week':
+                            const weekStart = new Date();
+                            weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+                            const weekEnd = new Date(weekStart);
+                            weekEnd.setDate(weekEnd.getDate() + 7);
+                            
+                            filtered = filtered.filter(task => {
+                                if (!task.dueDate) return false;
+                                const taskDate = new Date(task.dueDate);
+                                return taskDate >= weekStart && taskDate <= weekEnd;
+                            });
+                            break;
+                        case 'priority':
+                            filtered = filtered.sort((a, b) => {
+                                const priorityOrder = {
+                                    'critical': 4,
+                                    'high': 3,
+                                    'medium': 2,
+                                    'low': 1
+                                };
+                                return priorityOrder[b.priority] - priorityOrder[a.priority];
+                            });
+                            break;
+                        case 'completed':
+                            filtered = filtered.filter(task => task.completed);
+                            break;
+                    }
+                    
+                    return filtered;
+                });
+
+                // Request notification permission on mount
+                onMounted(() => {
+                    loadTasks();
+                    
+                    if ('Notification' in window) {
+                        Notification.requestPermission();
+                    }
+                });
+
+                return {
+                    newTask,
+                    tasks,
+                    notifications,
+                    taskFilter,
+                    createTask,
+                    deleteTask,
+                    toggleTaskStatus,
+                    clearAllTasks,
+                    clearAllNotifications,
+                    dismissNotification,
+                    formatDate,
+                    filteredTasks,
+                    addNotification
+                };
             }
-        });
+        }).mount('#app');
     </script>
 </body>
 </html>
