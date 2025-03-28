@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+</head>
+<body class="bg-gray-100">
+    <div id="app" class="container mx-auto px-4 py-8">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Task Creation Column -->
+            <div class="bg-white shadow-md rounded p-6">
+                <h2 class="text-2xl mb-4 font-bold">Create Task</h2>
+                <form @submit.prevent="createTask">
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Title</label>
+                        <input 
+                            v-model="newTask.title" 
+                            type="text" 
+                            required 
+                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700"
+                            placeholder="Enter task title"
+                        >
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Description</label>
+                        <textarea 
+                            v-model="newTask.description" 
+                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700"
+                            placeholder="Task description (optional)"
+                        ></textarea>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Due Date</label>
+                        <input 
+                            v-model="newTask.dueDate" 
+                            type="date" 
+                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700"
+                        >
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Priority</label>
+                        <select 
+                            v-model="newTask.priority" 
+                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700"
+                        >
+                            <option value="low">Low</option>
+                            <option value="medium">Medium</option>
+                            <option value="high">High</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="flex items-center">
+                            <input 
+                                type="checkbox" 
+                                v-model="newTask.isRecurring" 
+                                class="mr-2"
+                            >
+                            Recurring Task
+                        </label>
+                    </div>
+                    <div v-if="newTask.isRecurring" class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Recurrence</label>
+                        <select 
+                            v-model="newTask.recurrence.frequency" 
+                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700"
+                        >
+                            <option value="daily">Daily</option>
+                            <option value="weekly">Weekly</option>
+                            <option value="monthly">Monthly</option>
+                        </select>
+                    </div>
+                    <button 
+                        type="submit" 
+                        class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded w-full"
+                    >
+                        Create Task
+                    </button>
+                </form>
+            </div>
+
+            <!-- Task List Column -->
+            <div class="bg-white shadow-md rounded p-6">
+                <h2 class="text-2xl mb-4 font-bold">My Tasks</h2>
+                <div 
+                    v-for="(task, index) in tasks" 
+                    :key="index" 
+                    class="border-b py-3 flex justify-between items-center"
+                >
+                    <div>
+                        <h3 class="font-bold">{{ task.title }}</h3>
+                        <p class="text-sm text-gray-600">{{ task.description }}</p>
+                        <span 
+                            :class="{
+                                'text-green-500': task.priority === 'low', 
+                                'text-yellow-500': task.priority === 'medium', 
+                                'text-red-500': task.priority === 'high'
+                            }"
+                        >
+                            {{ task.priority }} Priority
+                        </span>
+                        <p v-if="task.dueDate" class="text-sm text-gray-500">
+                            Due: {{ formatDate(task.dueDate) }}
+                        </p>
+                    </div>
+                    <div>
+                        <button 
+                            @click="completeTask(index)" 
+                            class="text-green-500 mr-2 hover:bg-green-100 p-1 rounded"
+                            title="Complete Task"
+                        >
+                            ✓
+                        </button>
+                        <button 
+                            @click="deleteTask(index)" 
+                            class="text-red-500 hover:bg-red-100 p-1 rounded"
+                            title="Delete Task"
+                        >
+                            ✗
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Calendar View Column -->
+            <div class="bg-white shadow-md rounded p-6">
+                <h2 class="text-2xl mb-4 font-bold">Calendar</h2>
+                <div id="calendar">
+                    <div 
+                        v-for="date in calendarDates" 
+                        :key="date" 
+                        class="border p-2 mb-1 flex justify-between items-center"
+                    >
+                        <span>{{ formatDate(date) }}</span>
+                        <div>
+                            <span 
+                                v-for="task in getTasksForDate(date)" 
+                                :key="task.title" 
+                                class="ml-2 text-xs bg-blue-100 px-1 rounded"
+                            >
+                                {{ task.title }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        new Vue({
+            el: '#app',
+            data: {
+                newTask: {
+                    title: '',
+                    description: '',
+                    dueDate: '',
+                    priority: 'medium',
+                    isRecurring: false,
+                    recurrence: {
+                        frequency: 'daily'
+                    }
+                },
+                tasks: [],
+                calendarDates: []
+            },
+            methods: {
+                createTask() {
+                    // Clone the new task to avoid reference issues
+                    const taskToAdd = {...this.newTask};
+                    this.tasks.push(taskToAdd);
+                    
+                    // Reset form
+                    this.newTask = {
+                        title: '',
+                        description: '',
+                        dueDate: '',
+                        priority: 'medium',
+                        isRecurring: false,
+                        recurrence: {
+                            frequency: 'daily'
+                        }
+                    };
+                },
+                completeTask(index) {
+                    // For now, we'll just remove the task
+                    this.tasks.splice(index, 1);
+                },
+                deleteTask(index) {
+                    this.tasks.splice(index, 1);
+                },
+                generateCalendar() {
+                    const today = new Date();
+                    this.calendarDates = [...Array(30)].map((_, i) => {
+                        const date = new Date(today);
+                        date.setDate(today.getDate() + i);
+                        return date.toISOString().split('T')[0];
+                    });
+                },
+                formatDate(dateString) {
+                    if (!dateString) return '';
+                    return new Date(dateString).toLocaleDateString('en-US', {
+                        weekday: 'short',
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                    });
+                },
+                getTasksForDate(date) {
+                    return this.tasks.filter(task => 
+                        task.dueDate && task.dueDate === date
+                    );
+                }
+            },
+            mounted() {
+                this.generateCalendar();
+            }
+        });
+    </script>
+</body>
+</html>
