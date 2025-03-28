@@ -44,9 +44,9 @@
                 <div class="bg-white shadow-2xl rounded-2xl p-6 transform transition-all hover:scale-105 duration-300">
                     <h2 class="text-2xl mb-6 font-bold text-center flex items-center justify-center">
                         <i class="mdi mdi-plus-circle text-blue-500 mr-3 text-3xl"></i>
-                        Create Task
+                        {{ editingTask !== null ? 'Edit Task' : 'Create Task' }}
                     </h2>
-                    <form @submit.prevent="createTask">
+                    <form @submit.prevent="editingTask !== null ? updateTask() : createTask()">
                         <div class="space-y-4">
                             <input 
                                 v-model="newTask.title" 
@@ -121,7 +121,15 @@
                                 type="submit" 
                                 class="w-full bg-gradient-to-r from-blue-500 to-purple-500 text-white py-3 rounded-lg hover:from-blue-600 hover:to-purple-600 transition duration-300"
                             >
-                                Create Task
+                                {{ editingTask !== null ? 'Update Task' : 'Create Task' }}
+                            </button>
+                            <button 
+                                v-if="editingTask !== null" 
+                                type="button" 
+                                @click="cancelEdit" 
+                                class="w-full mt-2 bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 transition duration-300"
+                            >
+                                Cancel
                             </button>
                         </div>
                     </form>
@@ -192,10 +200,17 @@
                                     >
                                         <i class="mdi mdi-bell-ring mr-1"></i>
                                         {{ task.reminderFrequency }} 
+                                        {{ task.reminderTime ? `(${formatDate(task.reminderTime)})` : '' }}
                                     </span>
                                 </div>
                             </div>
                             <div class="flex items-center space-x-2">
+                                <button 
+                                    @click="startEditTask(index)" 
+                                    class="text-blue-500 hover:bg-blue-100 p-2 rounded"
+                                >
+                                    <i class="mdi mdi-pencil"></i>
+                                </button>
                                 <button 
                                     @click="toggleTaskStatus(index)" 
                                     class="text-green-500 hover:bg-green-100 p-2 rounded"
@@ -288,6 +303,7 @@
                 const tasks = ref([]);
                 const notifications = ref([]);
                 const taskFilter = ref('all');
+                const editingTask = ref(null);
 
                 // Sophisticated notification system
                 const addNotification = (title, message, type = 'success') => {
@@ -359,6 +375,65 @@
                         reminderFrequency: '15min',
                         reminderTime: '',
                     };
+                };
+
+                const startEditTask = (index) => {
+                    editingTask.value = index;
+                    const taskToEdit = tasks.value[index];
+                    newTask.value = { ...taskToEdit };
+                };
+
+                const updateTask = () => {
+                    // Validate due date
+                    if (new Date(newTask.value.dueDate) < new Date()) {
+                        addNotification('Invalid Date', 'Due date cannot be in the past', 'error');
+                        return;
+                    }
+
+                    // IMPORTANT FIX: Update the specific task in the tasks array
+                    const taskId = tasks.value[editingTask.value].id;
+                    
+                    tasks.value[editingTask.value] = { 
+                        id: taskId, // Preserve the original task's ID
+                        ...newTask.value, 
+                        completed: tasks.value[editingTask.value].completed // Preserve completed status
+                    };
+
+                    addNotification('Task Updated', `Task "${newTask.value.title}" has been updated`);
+
+                    // Schedule reminders if reminder is set
+                    if (newTask.value.setReminder) {
+                        scheduleReminder(tasks.value[editingTask.value]);
+                    }
+
+                    saveTasks();
+
+                    // Reset form and editing state
+                    newTask.value = {
+                        title: '',
+                        description: '',
+                        dueDate: '',
+                        priority: 'medium',
+                        isRecurring: false,
+                        setReminder: false,
+                        reminderFrequency: '15min',
+                        reminderTime: '',
+                    };
+                    editingTask.value = null;
+                };
+
+                const cancelEdit = () => {
+                    newTask.value = {
+                        title: '',
+                        description: '',
+                        dueDate: '',
+                        priority: 'medium',
+                        isRecurring: false,
+                        setReminder: false,
+                        reminderFrequency: '15min',
+                        reminderTime: '',
+                    };
+                    editingTask.value = null;
                 };
 
                 const scheduleReminder = (task) => {
@@ -508,7 +583,11 @@
                     tasks,
                     notifications,
                     taskFilter,
+                    editingTask,
                     createTask,
+                    startEditTask,
+                    updateTask,
+                    cancelEdit,
                     deleteTask,
                     toggleTaskStatus,
                     clearAllTasks,
